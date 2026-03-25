@@ -1,0 +1,273 @@
+{
+  "$defs": {
+    "DefaultConfig": {
+      "properties": {
+        "audio_file": {
+          "title": "Audio File",
+          "type": "string",
+          "description": "Main audio file. All topic timecodes reference this file by default.",
+          "examples": [
+            "audio.m4a",
+            "voiceover.mp3"
+          ]
+        },
+        "video_file": {
+          "type": "string",
+          "title": "Video File",
+          "description": "Main screen recording. Used by fromVideo topics unless overridden.",
+          "examples": [
+            "screen.mp4",
+            "recording.mkv"
+          ]
+        },
+        "resolution": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "type": "array",
+          "title": "Resolution",
+          "description": "Output frame size [width, height]. Images are letterboxed to fit. Auto-detected from video_file if omitted.",
+          "examples": [
+            [
+              1920,
+              1080
+            ],
+            [
+              1280,
+              720
+            ]
+          ]
+        }
+      },
+      "required": [
+        "audio_file"
+      ],
+      "title": "DefaultConfig",
+      "type": "object",
+      "description": "Default source files and output settings."
+    },
+    "DefaultNorm": {
+      "properties": {
+        "audio": {
+          "enum": [
+            "extend_with_silence",
+            "change_speed"
+          ],
+          "title": "Audio",
+          "type": "string",
+          "description": "extend_with_silence | change_speed (0.75×–1.25× limit)"
+        },
+        "video": {
+          "enum": [
+            "extend_with_last_frame",
+            "change_speed"
+          ],
+          "title": "Video",
+          "type": "string",
+          "description": "extend_with_last_frame | change_speed (0.5×–2.0× limit)"
+        },
+        "image": {
+          "enum": [
+            "to_video_same_frame"
+          ],
+          "title": "Image",
+          "type": "string",
+          "description": "Only to_video_same_frame is supported."
+        }
+      },
+      "title": "DefaultNorm",
+      "type": "object",
+      "description": "Global fallback normalization methods."
+    },
+    "FromImage": {
+      "properties": {
+        "file": {
+          "title": "File",
+          "type": "string",
+          "description": "Path to image file (PNG recommended).",
+          "examples": [
+            "slides/slide-0001.png"
+          ]
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "title": "FromImage",
+      "type": "object",
+      "description": "Use a static image as video source. Letterboxed to output resolution."
+    },
+    "FromVideo": {
+      "properties": {
+        "timing": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Timing",
+          "type": "array",
+          "description": "[start, end] as MM:SS.mmm strings or float seconds.",
+          "examples": [
+            [
+              "00:00.000",
+              "00:20.000"
+            ]
+          ]
+        },
+        "file": {
+          "type": "string",
+          "title": "File",
+          "description": "Per-topic video file override. Falls back to default_configuration.video_file."
+        }
+      },
+      "required": [
+        "timing"
+      ],
+      "title": "FromVideo",
+      "type": "object",
+      "description": "Extract a segment from a video file."
+    },
+    "Topic": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string",
+          "description": "Unique scene name. Used in logs and mp4 chapter metadata."
+        },
+        "audio": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Audio",
+          "type": "array",
+          "description": "[start, end] timecodes into the audio file.",
+          "examples": [
+            [
+              "00:00.000",
+              "00:30.250"
+            ]
+          ]
+        },
+        "video": {
+          "$ref": "#/$defs/VideoSource",
+          "description": "Video source: clip or static image."
+        },
+        "length_normalization": {
+          "$ref": "#/$defs/TopicNorm",
+          "description": "How to align audio and video durations. Defaults to by=audio."
+        },
+        "audio_file": {
+          "type": "string",
+          "title": "Audio File",
+          "description": "Per-topic audio file override."
+        }
+      },
+      "required": [
+        "name",
+        "audio",
+        "video"
+      ],
+      "title": "Topic",
+      "type": "object",
+      "description": "One scene: one audio segment + one video clip."
+    },
+    "TopicNorm": {
+      "description": "Duration reconciliation rules for this topic.",
+      "properties": {
+        "by": {
+          "title": "By",
+          "type": "string",
+          "description": "Target duration: 'audio' | 'video' | 'length=MM:SS.mmm'",
+          "examples": [
+            "audio",
+            "video",
+            "length=00:45.000"
+          ]
+        },
+        "audio": {
+          "enum": [
+            "extend_with_silence",
+            "change_speed"
+          ],
+          "type": "string",
+          "title": "Audio",
+          "description": "Override audio normalization method for this topic."
+        },
+        "video": {
+          "enum": [
+            "extend_with_last_frame",
+            "change_speed"
+          ],
+          "type": "string",
+          "title": "Video",
+          "description": "Override video normalization method for this topic."
+        },
+        "image": {
+          "enum": ["to_video_same_frame"],
+          "type": "string",
+          "title": "Image"
+        }
+      },
+      "title": "TopicNorm",
+      "type": "object"
+    },
+    "VideoSource": {
+      "properties": {
+        "fromVideo": {
+          "$ref": "#/$defs/FromVideo"
+        },
+        "fromImage": {
+          "$ref": "#/$defs/FromImage"
+        }
+      },
+      "title": "VideoSource",
+      "type": "object",
+      "description": "Exactly one of fromVideo or fromImage must be provided."
+    }
+  },
+  "properties": {
+    "default_normalization": {
+      "$ref": "#/$defs/DefaultNorm"
+    },
+    "default_configuration": {
+      "$ref": "#/$defs/DefaultConfig"
+    },
+    "topics": {
+      "items": {
+        "$ref": "#/$defs/Topic"
+      },
+      "title": "Topics",
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered list of scenes. Final video is their concatenation."
+    }
+  },
+  "required": [
+    "default_configuration",
+    "topics"
+  ],
+  "title": "demo-builder config",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Configuration for demo-builder. Timecodes: MM:SS.mmm or HH:MM:SS.mmm."
+}

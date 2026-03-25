@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "demo-builder"
+version = "0.2.0"
+description = "Assemble demo videos from audio, screen recordings, and slides — powered by ffmpeg"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "click>=8.1",
+]
+
+[project.optional-dependencies]
+tts-edge   = ["edge-tts>=6.1"]
+tts-openai = ["openai>=1.0"]
+tts-local  = ["pyttsx3>=2.90"]
+
+[project.scripts]
+demo = "demo_builder.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["demo_builder*"]

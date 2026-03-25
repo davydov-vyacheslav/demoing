@@ -1,0 +1,9 @@
+# core — always required
+pydantic>=2.0
+pyyaml==6.0.3
+click==8.3.1
+
+# optional TTS engines
+# edge-tts>=6.1
+# pyttsx3>=2.90
+# openai>=1.0
