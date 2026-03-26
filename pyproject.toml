@@ -20,6 +20,8 @@ demo = "demo_builder.cli:main"
 
 [tool.setuptools]
 packages = ["demo_builder", "demo_builder.pipeline"]
+
+[tool.setuptools_scm]
 version_scheme = "no-guess-dev"
 
 [tool.setuptools.package-dir]
