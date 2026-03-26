@@ -1,4 +1,4 @@
-import ffmpeg_runner as ff
+from . import ffmpeg_runner as ff
 from pathlib import Path
 
 # Common encode flags reused across all video-output steps.

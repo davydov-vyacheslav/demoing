@@ -10,7 +10,6 @@ from __future__ import annotations
 import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import click
@@ -89,13 +88,13 @@ def _print_validation(config) -> None:
     for i, t in enumerate(config.topics):
         n = config.resolved_norm(t)
         a = t.audio_duration
-        v = t.video.fromVideo.duration if t.video.fromVideo else None
+        v = t.video.duration if t.video.typeOf == "video" else None
         tgt = (n.fixed_duration or
                (a if n.by != "video" else (v or a)))
         total += tgt
         v_str = format_timecode(v) if v else f"{D}(image){R}"
         by_str = "fixed" if n.fixed_duration else n.by
-        vmeth = n.video if t.video.fromVideo else n.image
+        vmeth = n.video if t.video.typeOf == "video" else n.image
 
         w: list[str] = []
         if n.audio == "change_speed" and a > 0 and tgt > 0:
@@ -134,42 +133,13 @@ def pdf_split(pdf_file, output_dir, dpi, prefix, fmt):
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    if shutil.which("pdftoppm"):
-        flag = "-png" if fmt == "png" else "-jpeg"
-        subprocess.run(["pdftoppm", flag, "-r", str(dpi), pdf_file, str(out / prefix)],
-                       check=True)
-    elif shutil.which("magick") or shutil.which("convert"):
-        bin_ = "magick" if shutil.which("magick") else "convert"
-        subprocess.run([bin_, "-density", str(dpi), pdf_file,
-                        str(out / f"{prefix}-%04d.{fmt}")], check=True)
-    else:
-        ff.warn("pdftoppm/ImageMagick not found — trying ffmpeg")
-        subprocess.run(["ffmpeg", "-y", "-i", pdf_file,
-                        str(out / f"{prefix}-%04d.{fmt}")], check=True)
+    flag = "-png" if fmt == "png" else "-jpeg"
+    subprocess.run(["pdftoppm", flag, "-r", str(dpi), pdf_file, str(out / prefix)], check=True)
 
     files = sorted(out.glob(f"{prefix}*.{fmt}"))
     ff.ok(f"{len(files)} images → {output_dir}/")
     for f in files:
         print(f"    {f.name}")
-
-
-def _split_pauses(text: str) -> list[tuple[str, float]]:
-    import re
-    parts = re.split(r"\[pause:([\d.]+)\]", text)
-    result: list[tuple[str, float]] = []
-    for i in range(0, len(parts), 2):
-        pause = float(parts[i + 1]) if i + 1 < len(parts) else 0.0
-        result.append((parts[i], pause))
-    return result
-
-
-def _concat_audio(files: list[Path], output: str) -> None:
-    lst = Path(tempfile.mktemp(suffix=".txt"))
-    lst.write_text("\n".join(f"file '{p.resolve()}'" for p in files))
-    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                    "-i", str(lst), "-c:a", "aac", "-b:a", "192k", output],
-                   check=True)
-    lst.unlink(missing_ok=True)
 
 
 # ── Entry point

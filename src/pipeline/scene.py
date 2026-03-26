@@ -3,12 +3,12 @@ Scene builder.
 
 For each topic:
   1. Extract audio segment
-  2. Extract video segment OR create video from image (with letterbox)
+  2. Extract video clip OR create video from image (letterboxed)
   3. Compute target duration
   4. Normalize audio and video to target
   5. Mux → scene_NNN_name/scene.mp4
 
-Caching: a .cache_key file stores a hash of all inputs.
+Caching: a .cache_key file stores a SHA-1 of all inputs + parameters.
 Re-runs skip unchanged scenes automatically.
 """
 from __future__ import annotations
@@ -49,13 +49,11 @@ def build_all(
 ) -> list[SceneInfo]:
     work_dir.mkdir(parents=True, exist_ok=True)
 
-    # Resolve output resolution once (shared across all scenes)
-    any_video = next(
-        (config.video_file(t) for t in config.topics if t.video.fromVideo), None
+    # Resolve output resolution once, shared across all scenes.
+    any_video_file = next(
+        (config.video_file(t) for t in config.topics if t.video.typeOf == "video"), None
     )
-    resolution = v_pipe.resolve_resolution(
-        config.default_configuration.resolution, any_video
-    )
+    resolution = v_pipe.resolve_resolution(config.default_configuration.resolution, any_video_file)
     ff.info(f"Output resolution: {resolution[0]}×{resolution[1]}")
 
     scenes: list[SceneInfo] = []
@@ -90,32 +88,33 @@ def _build_scene(
     cache_file = scene_dir / ".cache_key"
     if final.exists() and cache_file.exists() and cache_file.read_text().strip() == cache_key:
         actual_dur = probe_duration(final)
-        v_dur = topic.video.fromVideo.duration if topic.video.fromVideo else topic.audio_duration
+        v_dur = topic.video.duration if topic.video.typeOf == "video" else topic.audio_duration
         return SceneInfo(
             index=idx, name=topic.name,
             audio_dur=topic.audio_duration, video_dur=v_dur,
             target_dur=actual_dur, norm_by=norm.by,
             audio_method=norm.audio,
-            video_method=norm.video if topic.video.fromVideo else norm.image,
+            video_method=norm.video if topic.video.typeOf == "video" else norm.image,
             output=final, cached=True,
         )
 
     # ── Step 1: extract audio ──────────────────────────────────────────────
     raw_audio = scene_dir / "raw_audio.aac"
-    a_dur = a_pipe.extract_segment(audio_src, topic.audio[0], topic.audio[1], raw_audio)
+    timing = topic.audio.timing
+    a_dur = a_pipe.extract_segment(audio_src, timing[0], timing[1], raw_audio)
 
-    # ── Step 2: get raw video ──────────────────────────────────────────────
+    # ── Step 2: get raw video clip (fromVideo only) ────────────────────────
     raw_video = scene_dir / "raw_video.mp4"
     v_dur: Optional[float] = None
 
-    if topic.video.fromVideo:
-        vt = topic.video.fromVideo
+    if topic.video.typeOf == "video":
+        assert topic.video.timing is not None  # enforced by VideoSource validator
         v_dur = v_pipe.extract_segment(
-            video_src, vt.timing[0], vt.timing[1], raw_video,
+            video_src, topic.video.timing[0], topic.video.timing[1], raw_video,
             resolution=resolution, fps=fps,
         )
 
-    # ── Step 3: target duration ────────────────────────────────────────────
+    # ── Step 3: compute target duration ───────────────────────────────────
     if norm.fixed_duration is not None:
         target = norm.fixed_duration
     elif norm.by == "audio":
@@ -129,28 +128,25 @@ def _build_scene(
     else:
         target = a_dur
 
-    # ── Step 4a: image → video (now we know target duration)
-    if topic.video.fromImage:
-        v_pipe.image_to_video(
-            topic.video.fromImage.file, target, raw_video,
-            resolution=resolution, fps=fps,
-        )
+    # ── Step 4a: image → video (duration now known) ────────────────────────
+    if topic.video.typeOf == "image":
+        assert topic.video.file is not None  # enforced by VideoSource validator
+        v_pipe.image_to_video(topic.video.file, target, raw_video, resolution=resolution, fps=fps)
         v_dur = target
 
-    # ── Step 4b: normalize audio
+    # ── Step 4b: normalize audio ───────────────────────────────────────────
     norm_audio = scene_dir / "norm_audio.aac"
     a_pipe.normalize(raw_audio, target, norm.audio, norm_audio)
 
-    # ── Step 4c: normalize video
+    # ── Step 4c: normalize video ───────────────────────────────────────────
     norm_video = scene_dir / "norm_video.mp4"
-    if topic.video.fromVideo:
+    if topic.video.typeOf == "video":
         v_pipe.normalize(raw_video, target, norm.video, norm_video, fps=fps)
     else:
         shutil.copy(raw_video, norm_video)
 
-    # ── Step 5: mux
+    # ── Step 5: mux audio + video ──────────────────────────────────────────
     mux_audio_video(final, norm_audio, norm_video)
-
     cache_file.write_text(cache_key)
 
     return SceneInfo(
@@ -158,7 +154,7 @@ def _build_scene(
         audio_dur=a_dur, video_dur=v_dur if v_dur is not None else target,
         target_dur=target, norm_by=norm.by,
         audio_method=norm.audio,
-        video_method=norm.video if topic.video.fromVideo else norm.image,
+        video_method=norm.video if topic.video.typeOf == "video" else norm.image,
         output=final, cached=False,
     )
 
@@ -177,14 +173,14 @@ def _make_cache_key(
         "resolution": resolution,
         "fps": fps,
     }
-    for f in filter(None, [audio_src, video_src]):
+    for path in filter(None, [audio_src, video_src]):
         try:
-            params[f"hash:{f}"] = file_hash(f)
+            params[f"hash:{path}"] = file_hash(path)
         except FileNotFoundError:
-            params[f"hash:{f}"] = "missing"
-    if topic.video.fromImage:
+            params[f"hash:{path}"] = "missing"
+    if topic.video.typeOf == "image" and topic.video.file:
         try:
-            params[f"hash:{topic.video.fromImage.file}"] = file_hash(topic.video.fromImage.file)
+            params[f"hash:{topic.video.file}"] = file_hash(topic.video.file)
         except FileNotFoundError:
-            params[f"hash:{topic.video.fromImage.file}"] = "missing"
+            params[f"hash:{topic.video.file}"] = "missing"
     return dict_hash(params)

@@ -1,8 +1,8 @@
 # Stage 1: build wheel
-FROM python:3.12-slim AS builder
+FROM python:3.12-alpine AS builder
 
 WORKDIR /build
-COPY requirements.txt pyproject.toml README.md ./
+COPY pyproject.toml README.md ./
 COPY src/ src/
 
 RUN pip install --upgrade pip \
@@ -11,20 +11,13 @@ RUN pip install --upgrade pip \
 
 
 # Stage 2: runtime
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
-# ffmpeg + poppler (pdftoppm for PDF splitting)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ffmpeg \
-        poppler-utils \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache ffmpeg poppler-utils
 
-# Install the wheel built in stage 1
 COPY --from=builder /dist/*.whl /tmp/
 RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
 
-# Working directory — users mount their project here
 WORKDIR /work
-
 ENTRYPOINT ["demo"]
 CMD ["--help"]

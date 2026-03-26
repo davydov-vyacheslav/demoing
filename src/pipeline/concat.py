@@ -1,7 +1,6 @@
 """Concatenation: merge scenes."""
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 from .scene import SceneInfo
@@ -25,4 +24,5 @@ def concatenate(
     merged = tmp_dir / output
     concat_items_from_file(list_file, merged)
 
-    shutil.rmtree(tmp_dir, ignore_errors=True)
+# FIXME
+#    shutil.rmtree(tmp_dir, ignore_errors=True)

@@ -7,7 +7,7 @@ from .. import ffmpeg_runner as ff
 from ..ffprobe_utils import probe_duration
 from ..ffmpeg_utils import extract_audio, change_audio_speed, trim_audio, pad_audio
 
-SPEED_MIN, SPEED_MAX = 0.75, 1.25
+SPEED_MIN, SPEED_MAX = 0.5, 2.0
 
 
 def extract_segment(src: str | Path, start: float, end: float, out: Path) -> float:

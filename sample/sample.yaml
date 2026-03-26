@@ -1,0 +1,92 @@
+default_normalization:
+  audio: extend_with_silence     # extend_with_silence | change_speed
+  video: extend_with_last_frame  # extend_with_last_frame | change_speed
+  image: to_video_same_frame
+
+default_configuration:
+  audio_file: sample.m4a
+  video_file: sample.mov
+#  resolution: [1920, 1080]       # FIXME: why do we need this? take first file resolution... output frame size; images are letterboxed to fit
+
+topics:
+
+#  - name: sample
+#    audio:
+#      file: filename # # optoional, default - from default_configuration.audio_file
+#      timing: ["00:00.000", "00:09.000"]
+#    video:
+#      file: filename # optoional, default - from default_configuration.video_file
+#      timing: ["00:00.000", "00:08.000"]
+#      type: video # video (default) | image , default = video TODO: enum
+#    length_normalization:
+#      by: audio                  # audio | video | fixed
+#      length: 00:10.000         # required if by = fixed
+
+
+#  Case 0 - Intro
+#- Normal Audio: [00:25, 00:29:800]
+#- Image: image01.png
+#
+
+  - name: intro
+    audio:
+      timing: ["00:25", "00:29.800"]
+    video:
+      file: slides/slide-01.png
+      typeOf: image
+    length_normalization:
+      by: audio
+
+  #### Case 1
+  #- Normal Audio: [00:00, 00:01.169]
+  #- Normal Video
+  #- Same length
+  - name: simple
+    audio:
+      timing: ["00:00", "00:01.169"]
+    video:
+      timing: ["00:01", "00:02.169"]
+    length_normalization:
+      by: audio
+
+
+  #### Case 2
+  #- Audio + silence at end: [00:05.300, 00:08]
+  #- Normal Video
+  #- Audio shorter than video
+  - name: long_video
+    audio:
+      timing: ["00:05.300", "00:08"]
+    video:
+      timing: ["00:10", "00:20"]
+    length_normalization:
+      by: video
+
+  #### Case 3
+  #- Normal Audio: [00:10.150, 00:15.400]
+  #- Speedup video
+  #- Video is shorter than audio
+  - name: speedup_video
+    audio:
+      timing: [ "00:10.150", "00:15.400" ]
+    video:
+      timing: [ "00:10", "00:20" ]
+    length_normalization:
+      by: audio
+      video: change_speed
+
+
+  #### Case 4
+  #- Speedup Audio: [00:17.900, 00:23:800]
+  #- Normal Video
+  #- Audio longer than video
+
+  - name: speedup_audio
+    audio:
+      timing: [ "00:17.900", "00:23.800" ]
+    video:
+      timing: [ "00:10", "00:13" ]
+    length_normalization:
+      by: video
+      audio: change_speed
+
