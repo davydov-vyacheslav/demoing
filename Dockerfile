@@ -13,7 +13,7 @@ RUN pip install --upgrade pip \
 # Stage 2: runtime
 FROM python:3.12-alpine
 
-RUN apk add --no-cache ffmpeg7 poppler-utils
+RUN apk add --no-cache ffmpeg7
 
 COPY --from=builder /dist/*.whl /tmp/
 RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl

@@ -2,18 +2,18 @@
 demo-builder CLI
 
 Commands:
-  build            Build final video from a config file
-  pdf-split        Split PDF into per-page PNG images
+  build                Build final video from a config file
+  ref-audio-normalize  Convert audio to mono WAV (for TTS reference prep)
 """
 from __future__ import annotations
 
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
 import click
 
+from .ffmpeg_utils import normalize_audio_wav
 from .config import load_config
 from . import ffmpeg_runner as ff
 from .ffmpeg_runner import FFmpegError
@@ -76,6 +76,22 @@ def build(config_file, output, work_dir, verbose, log, keep_temp, no_cache, fps)
     if not keep_temp:
         shutil.rmtree(work, ignore_errors=True)
 
+# --- reference audio normalization
+
+@cli.command("ref-audio-normalize")
+@click.argument("input_file", type=click.Path(exists=True, dir_okay=False))
+def ref_audio_normalize(input_file, sample_rate):
+    """
+    Convert INPUT_FILE to mono WAV at SAMPLE_RATE Hz (s16).
+    Output file with same name, with .wav extension
+    """
+
+    src = Path(input_file)
+    dst = src.with_suffix(".wav")
+
+    normalize_audio_wav(src, dst, sample_rate=sample_rate)
+
+    ff.ok(f"{src.name} → {dst}  (mono, s16, {sample_rate} Hz)")
 
 # ── validation table (also called inside build)
 
@@ -118,29 +134,6 @@ def _print_validation(config) -> None:
         print(w)
     if warnings:
         print()
-
-
-# ── pdf-split ──────────────────────────────────────────────────────────────
-
-@cli.command("pdf-split")
-@click.argument("pdf_file", type=click.Path(exists=True, dir_okay=False))
-@click.option("-o", "--output-dir", default="slides",  show_default=True)
-@click.option("--dpi",              default=150,       show_default=True)
-@click.option("--prefix",           default="slide",   show_default=True)
-@click.option("--format", "fmt",    default="png", type=click.Choice(["png", "jpg"]))
-def pdf_split(pdf_file, output_dir, dpi, prefix, fmt):
-    """Split PDF_FILE into per-page images."""
-    out = Path(output_dir)
-    out.mkdir(parents=True, exist_ok=True)
-
-    flag = "-png" if fmt == "png" else "-jpeg"
-    subprocess.run(["pdftoppm", flag, "-r", str(dpi), pdf_file, str(out / prefix)], check=True)
-
-    files = sorted(out.glob(f"{prefix}*.{fmt}"))
-    ff.ok(f"{len(files)} images → {output_dir}/")
-    for f in files:
-        print(f"    {f.name}")
-
 
 # ── Entry point
 

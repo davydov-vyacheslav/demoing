@@ -1,6 +1,8 @@
 """Concatenation: merge scenes."""
 from __future__ import annotations
 
+import shutil
+
 from pathlib import Path
 
 from .scene import SceneInfo
@@ -21,8 +23,9 @@ def concatenate(
     list_file.write_text(
         "\n".join(f"file '{p.resolve()}'" for p in paths)
     )
-    merged = tmp_dir / output
-    concat_items_from_file(list_file, merged)
 
-# FIXME
-#    shutil.rmtree(tmp_dir, ignore_errors=True)
+    merged = tmp_dir / "merged.mp4"
+    concat_items_from_file(list_file, merged)
+    shutil.move(str(merged), str(output))
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+

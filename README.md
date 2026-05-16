@@ -4,6 +4,7 @@ ffmpeg-based MovieMaker-replacement tool to prepare pre-recorder demo based on r
 Assemble demo videos from audio recordings, screen recordings, and presentation slides.
 No video editors — just **Python + ffmpeg**.
 
+This project consider the workflow to have pre-recorded demo (screencast) based on some inputs
  
 ## Build (Docker)
 
@@ -11,14 +12,14 @@ The application wil be build (and push to Docker Hub) automatically on push the 
 
 Build locally:
 ```bash
-docker build -t demo-builder .
+docker build -t davs87/demo-builder .
 ```
  
 Or with plain `docker run`:
  
 ```bash
-docker run --rm -v "$(pwd)":/work demo-builder build config.yaml -o final.mp4
-docker run --rm -v "$(pwd)":/work demo-builder pdf-split slides.pdf -o slides/
+docker run --rm -v "$(pwd)":/work davs87/demo-builder build config.yaml -o final.mp4
+docker run --rm -v davs87/demo-builder ref-audio-normalize my_reference.m4a
 ```
 
 Docker Hub PAT token url: https://app.docker.com/accounts/davs87/settings/personal-access-tokens/
@@ -32,20 +33,6 @@ Docker Hub PAT token url: https://app.docker.com/accounts/davs87/settings/person
 ```bash
 demo build config.yaml -o final.mp4
 ```
-
-### `demo pdf-split`
-
-Splits pdf into image files
-
-```bash
-# Docker
-demo pdf-split sample/sample.pdf -o sample/slides --dpi 150 --format png --prefix slide
-
-# Local
-./.venv/bin/python -m src.cli pdf-split sample/sample.pdf -o sample/slides --dpi 150 --format png --prefix slide
-```
- 
-Uses `pdftoppm` underhood
 
 ## Config reference
 

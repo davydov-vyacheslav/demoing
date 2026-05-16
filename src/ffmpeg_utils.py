@@ -89,3 +89,16 @@ def mux_audio_video(final: Path, norm_audio: Path, norm_video: Path):
          str(final)],
         desc="Mux audio + video",
     )
+
+def normalize_audio_wav(src: Path, out: Path, *, sample_rate: int = 24000) -> None:
+    """Convert audio to mono WAV at given sample rate (s16).
+    Suitable for preparing TTS reference audio (mlx-audio, Qwen3-TTS, etc.).
+    """
+    ff.run(
+        ["ffmpeg", "-y", "-i", str(src),
+         "-af", f"aformat=channel_layouts=mono,aresample={sample_rate}",
+         "-ar", str(sample_rate),
+         "-sample_fmt", "s16",
+         str(out)],
+        desc=f"Normalize audio → mono s16 {sample_rate}Hz WAV",
+    )
