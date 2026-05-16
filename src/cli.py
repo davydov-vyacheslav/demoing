@@ -80,18 +80,18 @@ def build(config_file, output, work_dir, verbose, log, keep_temp, no_cache, fps)
 
 @cli.command("ref-audio-normalize")
 @click.argument("input_file", type=click.Path(exists=True, dir_okay=False))
-def ref_audio_normalize(input_file, sample_rate):
+def ref_audio_normalize(input_file):
     """
-    Convert INPUT_FILE to mono WAV at SAMPLE_RATE Hz (s16).
+    Convert INPUT_FILE to mono WAV
     Output file with same name, with .wav extension
     """
 
     src = Path(input_file)
     dst = src.with_suffix(".wav")
 
-    normalize_audio_wav(src, dst, sample_rate=sample_rate)
+    normalize_audio_wav(src, dst)
 
-    ff.ok(f"{src.name} → {dst}  (mono, s16, {sample_rate} Hz)")
+    ff.ok(f"{src.name} → {dst}  (mono, s16, 24000 Hz)")
 
 # ── validation table (also called inside build)
 

@@ -19,5 +19,8 @@ COPY --from=builder /dist/*.whl /tmp/
 RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
 
 WORKDIR /work
+
+VOLUME ["/work"]
+
 ENTRYPOINT ["demo"]
 CMD ["--help"]
