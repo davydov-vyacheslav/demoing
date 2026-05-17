@@ -16,11 +16,14 @@ FROM python:3.12-alpine
 RUN apk add --no-cache ffmpeg7
 
 COPY --from=builder /dist/*.whl /tmp/
-RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
+
+RUN pip install --no-cache-dir --no-compile /tmp/*.whl \
+ && rm /tmp/*.whl \
+ && pip uninstall -y pip setuptools wheel \
+ && find /usr/local/lib/python3.12 -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null; \
+    find /usr/local/lib/python3.12 -name '*.pyc' -delete 2>/dev/null; true
 
 WORKDIR /work
-
 VOLUME ["/work"]
-
 ENTRYPOINT ["demo"]
 CMD ["--help"]
