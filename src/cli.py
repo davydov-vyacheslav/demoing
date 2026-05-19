@@ -8,6 +8,7 @@ Commands:
 from __future__ import annotations
 
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -92,6 +93,54 @@ def ref_audio_normalize(input_file):
     normalize_audio_wav(src, dst)
 
     ff.ok(f"{src.name} → {dst}  (mono, s16, 24000 Hz)")
+
+
+@cli.command("presentation")
+@click.argument("input_file", metavar="FILE", type=click.Path(exists=True, dir_okay=False))
+@click.option("--styles", metavar="DIR", type=click.Path(file_okay=False),
+              help="Folder with theme files (demo-maker.typ, logo.svg, …).")
+def presentation(input_file: str, styles: str | None) -> None:
+    """Compile FILE to a PDF and a folder of per-slide PNG images.
+
+    \b
+    Outputs (next to FILE):
+      <name>.pdf
+      slides/<name>-{0p}.png
+    """
+    src = Path(input_file).resolve()
+    out_dir = src.parent
+    stem = src.stem
+    tmp_dir = out_dir / "_presentation"
+
+    try:
+        tmp_dir.mkdir(exist_ok=True)
+
+        if styles:
+            for item in Path(styles).resolve().iterdir():
+                (shutil.copy2 if item.is_file() else shutil.copytree)(item, tmp_dir / item.name)
+
+        tmp_src = tmp_dir / src.name
+        tmp_slides = tmp_dir / "slides"
+        tmp_slides.mkdir()
+        shutil.copy2(src, tmp_src)
+
+        click.echo("> Compiling PDF ...")
+        subprocess.run(["typst", "compile", str(tmp_src), str(tmp_dir / f"{stem}.pdf")], check=True)
+
+        click.echo(">️ Compiling slides ...")
+        subprocess.run(["typst", "compile", str(tmp_src), str(tmp_slides / f"{stem}-{{0p}}.png")], check=True)
+
+        shutil.move(str(tmp_dir / f"{stem}.pdf"), out_dir / f"{stem}.pdf")
+        if (out_dir / "slides").exists():
+            shutil.rmtree(out_dir / "slides")
+        shutil.move(str(tmp_slides), out_dir / "slides")
+
+    finally:
+        if tmp_dir.exists():
+            shutil.rmtree(tmp_dir)
+
+    click.secho(f"✅ Done", fg="green")
+
 
 # ── validation table (also called inside build)
 

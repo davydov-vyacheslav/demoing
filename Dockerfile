@@ -13,7 +13,10 @@ RUN pip install --upgrade pip \
 # Stage 2: runtime
 FROM python:3.12-alpine
 
-RUN apk add --no-cache ffmpeg7
+RUN apk add --no-cache ffmpeg7 typst ttf-liberation \
+    && wget -q -O /usr/share/fonts/NotoColorEmoji.ttf \
+       https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf \
+    && fc-cache -f
 
 COPY --from=builder /dist/*.whl /tmp/
 

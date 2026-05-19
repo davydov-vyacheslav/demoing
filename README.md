@@ -19,21 +19,10 @@ Or with plain `docker run`:
  
 ```bash
 docker run --rm -v "$(pwd)":/work davs87/demo-builder build config.yaml -o final.mp4
-docker run --rm -v davs87/demo-builder ref-audio-normalize my_reference.m4a
+docker run --rm -v "$(pwd)":/work davs87/demo-builder ref-audio-normalize my_reference.m4a
+docker run --rm -v "$(pwd)":/work davs87/demo-builder presentation presentation.typ --styles styles
 ```
+
+You may check commands samples in workflow sample [readme file](./workflow/readme.md)
 
 Docker Hub PAT token url: https://app.docker.com/accounts/davs87/settings/personal-access-tokens/
-
----
-
-## Commands
-
-### `demo build`
- 
-```bash
-demo build config.yaml -o final.mp4
-```
-
-## Config reference
-
-see [the sample](./sample/sample.yaml) 
