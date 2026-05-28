@@ -1,0 +1,294 @@
+{
+  "language": "en",
+  "text": "My name is Slava, presenting on behalf of the DemoMaker team. Today we will cover the following areas. PDF page generation, removing a dependency that was inflating our build, audio normalization, ensuring reference audio is always in the right format, for speech synthesis, build reliability, closing a gap that caused output files to go missing, Demo Maker is a tool that automates the creation of recorded product demonstrations. It takes presentation slides, synthesized speech, and supporting assets and assembles them into a finished video. Version 0.1.4 delivers three improvements that make the tool leaner, more reliable, and easier to operate in a consistent way. Let's start with PDF page generation and dependency reduction. Previously, the tool relied on a separate command called split-pdf, whose sole job was to take a PDF presentation and break it apart into individual image pages, one per slide. To do that, we depended on a third-party system package called poplar-utilts, which had to be bundled into our Docker image. Docker images are self-contained environments that package an application with everything it needs to run. The larger the image, the slower it is to distribute and deploy. We discovered that MARP, the tool we already used to generate the PDF from slides, is also capable of producing those individual page images directly. This meant the split PDF command and the Poplar utils dependency were no longer needed, and both have been removed. The result is a smaller Docker image, which reduces deployment time and removes a maintenance burden we no longer need to carry. Next, let's cover the build reliability fix. The build command is responsible for taking all processed assets and delivering a final merged file to a designated output folder. An issue was identified where this final copy step did not always complete, meaning the output file never arrived at its destination. Alongside that, a temporary working folder used internally during the merge process was not being cleaned up, leaving leftover files after each run. Both issues have been resolved. The final file is now reliably delivered to the correct destination, and the temporary folder is removed once the build completes. In day-to-day operation, this means builds are trustworthy. The output you expect is where you expect it every time. Now let's look at audio normalization. TTS, text-to-speech synthesis tools, are sensitive to the format of any reference audio provided to them. They expect audio to have a single channel, known as mono, and a specific sample rate of 24 kHz. If reference audio arrives in a different format, the synthesis step can produce degraded or inconsistent results. A new command has been added to the tool that takes a reference audio file and normalizes it automatically, converting it to mono and setting the sample rate to 24 kHz. This removes a manual preparation step that was previously left to the operator and ensures the TTS stage always receives audio in the correct format. Let's have a demo to see how these work in practice. Here is what we are working on next. Whisper integration, finalizing which transcription engine to use. Whisper transcribes spoken audio into text, which feeds back into the workflow. WhisperKit, a lightweight alternative that can be installed directly via Brew without Python dependencies, is under evaluation as the preferred option. Faster Whisper remains available as a fallback. Voice generation pipeline, defining and documenting the end-to-end steps to produce synthesized speech from text. Together, these changes make DemoMaker more efficient to deploy, more predictable to operate, and better prepared for the audio pipeline work ahead. Thanks, ciao.",
+  "segments": [
+    {
+      "id": 0,
+      "text": "<|startoftranscript|><|en|><|transcribe|><|0.00|> My name is Slava, presenting on behalf of the DemoMaker team.<|3.54|>",
+      "start": 0.02,
+      "end": 3.36
+    },
+    {
+      "id": 1,
+      "text": "<|4.06|> Today we will cover the following areas.<|5.90|>",
+      "start": 4.08,
+      "end": 5.66
+    },
+    {
+      "id": 2,
+      "text": "<|6.24|> PDF page generation, removing a dependency that was inflating our build,<|9.96|>",
+      "start": 6.18,
+      "end": 9.86
+    },
+    {
+      "id": 3,
+      "text": "<|10.16|> audio normalization, ensuring reference audio is always in the right format,<|13.58|>",
+      "start": 10.12,
+      "end": 13.44
+    },
+    {
+      "id": 4,
+      "text": "<|13.76|> for speech synthesis, build reliability, closing a gap that caused output files to go missing,<|18.20|>",
+      "start": 13.7,
+      "end": 18.1
+    },
+    {
+      "id": 1,
+      "text": "<|startoftranscript|><|en|><|transcribe|><|0.00|> Demo Maker is a tool that automates the creation of recorded product demonstrations.<|3.82|>",
+      "start": 18.52,
+      "end": 22.08
+    },
+    {
+      "id": 2,
+      "text": "<|4.34|> It takes presentation slides, synthesized speech, and supporting assets and assembles them into a finished video.<|9.32|>",
+      "start": 22.7,
+      "end": 27.64
+    },
+    {
+      "id": 3,
+      "text": "<|9.54|> Version 0.1.4 delivers three improvements that make the tool leaner, more reliable, and easier to operate in a consistent way.<|16.02|>",
+      "start": 28.02,
+      "end": 34.42
+    },
+    {
+      "id": 2,
+      "text": "<|startoftranscript|><|en|><|transcribe|><|0.00|> Let's start with PDF page generation and dependency reduction.<|3.66|>",
+      "start": 34.72,
+      "end": 37.98
+    },
+    {
+      "id": 3,
+      "text": "<|3.66|> Previously, the tool relied on a separate command called split-pdf,<|7.30|>",
+      "start": 38.4,
+      "end": 41.58
+    },
+    {
+      "id": 4,
+      "text": "<|7.30|> whose sole job was to take a PDF presentation<|9.80|>",
+      "start": 42.100002,
+      "end": 44.04
+    },
+    {
+      "id": 5,
+      "text": "<|9.80|> and break it apart into individual image pages, one per slide.<|13.20|>",
+      "start": 44.6,
+      "end": 47.58
+    },
+    {
+      "id": 6,
+      "text": "<|13.20|> To do that, we depended on a third-party system package called poplar-utilts,<|17.80|>",
+      "start": 47.920002,
+      "end": 52.32
+    },
+    {
+      "id": 7,
+      "text": "<|17.80|> which had to be bundled into our Docker image.<|20.30|>",
+      "start": 52.72,
+      "end": 54.58
+    },
+    {
+      "id": 3,
+      "text": "<|startoftranscript|><|en|><|transcribe|><|0.00|> Docker images are self-contained environments that package an application with everything it needs to run.<|4.74|>",
+      "start": 55.02,
+      "end": 59.6
+    },
+    {
+      "id": 4,
+      "text": "<|5.12|> The larger the image, the slower it is to distribute and deploy.<|8.30|>",
+      "start": 60.05,
+      "end": 63.1
+    },
+    {
+      "id": 5,
+      "text": "<|8.72|> We discovered that MARP, the tool we already used to generate the PDF from slides,<|11.98|>",
+      "start": 63.71,
+      "end": 66.76
+    },
+    {
+      "id": 6,
+      "text": "<|12.10|> is also capable of producing those individual page images directly.<|15.02|>",
+      "start": 67.1,
+      "end": 69.82
+    },
+    {
+      "id": 7,
+      "text": "<|15.46|> This meant the split PDF command and the Poplar utils dependency were no longer needed,<|19.38|>",
+      "start": 70.46,
+      "end": 74.3
+    },
+    {
+      "id": 8,
+      "text": "<|19.68|> and both have been removed.<|20.66|>",
+      "start": 74.67,
+      "end": 75.44
+    },
+    {
+      "id": 9,
+      "text": "<|20.88|> The result is a smaller Docker image, which reduces deployment time<|23.88|>",
+      "start": 75.83,
+      "end": 78.78
+    },
+    {
+      "id": 10,
+      "text": "<|23.88|> and removes a maintenance burden we no longer need to carry.<|26.20|>",
+      "start": 78.95,
+      "end": 81.12
+    },
+    {
+      "id": 4,
+      "text": "<|startoftranscript|><|en|><|transcribe|><|0.00|> Next, let's cover the build reliability fix.<|3.00|>",
+      "start": 81.42,
+      "end": 83.8
+    },
+    {
+      "id": 5,
+      "text": "<|3.00|> The build command is responsible for taking all processed assets and delivering a final<|6.72|>",
+      "start": 84.25,
+      "end": 88.06
+    },
+    {
+      "id": 6,
+      "text": "<|6.72|> merged file to a designated output folder.<|9.40|>",
+      "start": 88.15,
+      "end": 89.9
+    },
+    {
+      "id": 7,
+      "text": "<|9.40|> An issue was identified where this final copy step did not always complete, meaning the<|12.96|>",
+      "start": 90.67,
+      "end": 94.36
+    },
+    {
+      "id": 8,
+      "text": "<|12.96|> output file never arrived at its destination.<|15.58|>",
+      "start": 94.380005,
+      "end": 96.04
+    },
+    {
+      "id": 9,
+      "text": "<|15.58|> Alongside that, a temporary working folder used internally during the merge process was<|19.36|>",
+      "start": 97.020004,
+      "end": 100.740005
+    },
+    {
+      "id": 10,
+      "text": "<|19.36|> not being cleaned up, leaving leftover files after each run.<|22.50|>",
+      "start": 100.740005,
+      "end": 103.44
+    },
+    {
+      "id": 5,
+      "text": "<|startoftranscript|><|en|><|transcribe|><|0.00|> Both issues have been resolved. The final file is now reliably delivered to the correct destination, and the temporary folder is removed once the build completes.<|7.50|>",
+      "start": 103.92,
+      "end": 110.78
+    },
+    {
+      "id": 6,
+      "text": "<|7.50|> In day-to-day operation, this means builds are trustworthy. The output you expect is where you expect it every time.<|12.50|>",
+      "start": 111.5,
+      "end": 116.240005
+    },
+    {
+      "id": 7,
+      "text": "<|12.50|> Now let's look at audio normalization. TTS, text-to-speech synthesis tools, are sensitive to the format of any reference audio provided to them.<|19.50|>",
+      "start": 116.64,
+      "end": 123.32
+    },
+    {
+      "id": 8,
+      "text": "<|19.50|> They expect audio to have a single channel, known as mono, and a specific sample rate of 24 kHz.<|25.10|>",
+      "start": 123.56,
+      "end": 128.76001
+    },
+    {
+      "id": 6,
+      "text": "<|startoftranscript|><|en|><|transcribe|><|0.00|> If reference audio arrives in a different format, the synthesis step can produce degraded or inconsistent results.<|5.40|>",
+      "start": 129.02,
+      "end": 134.16
+    },
+    {
+      "id": 7,
+      "text": "<|5.82|> A new command has been added to the tool that takes a reference audio file and normalizes it automatically,<|10.26|>",
+      "start": 134.71,
+      "end": 138.9
+    },
+    {
+      "id": 8,
+      "text": "<|10.74|> converting it to mono and setting the sample rate to 24 kHz.<|13.60|>",
+      "start": 139.77,
+      "end": 142.5
+    },
+    {
+      "id": 9,
+      "text": "<|13.94|> This removes a manual preparation step that was previously left to the operator<|17.18|>",
+      "start": 142.97,
+      "end": 145.98
+    },
+    {
+      "id": 10,
+      "text": "<|17.18|> and ensures the TTS stage always receives audio in the correct format.<|20.70|>",
+      "start": 146.49,
+      "end": 149.6
+    },
+    {
+      "id": 11,
+      "text": "<|21.04|> Let's have a demo to see how these work in practice.<|23.18|>",
+      "start": 149.98,
+      "end": 152.08
+    },
+    {
+      "id": 12,
+      "text": "<|23.58|> Here is what we are working on next.<|25.10|>",
+      "start": 152.57,
+      "end": 153.9
+    },
+    {
+      "id": 7,
+      "text": "<|startoftranscript|><|en|><|transcribe|><|0.00|> Whisper integration, finalizing which transcription engine to use.<|3.40|>",
+      "start": 154.12001,
+      "end": 157.28
+    },
+    {
+      "id": 8,
+      "text": "<|3.86|> Whisper transcribes spoken audio into text, which feeds back into the workflow.<|7.34|>",
+      "start": 157.84001,
+      "end": 161.36
+    },
+    {
+      "id": 9,
+      "text": "<|7.70|> WhisperKit, a lightweight alternative that can be installed directly via<|10.82|>",
+      "start": 161.74,
+      "end": 164.84001
+    },
+    {
+      "id": 10,
+      "text": "<|10.82|> Brew without Python dependencies, is under evaluation as the preferred option.<|14.64|>",
+      "start": 165,
+      "end": 168.58
+    },
+    {
+      "id": 11,
+      "text": "<|15.10|> Faster Whisper remains available as a fallback.<|17.20|>",
+      "start": 169.1,
+      "end": 171.16
+    },
+    {
+      "id": 8,
+      "text": "<|startoftranscript|><|en|><|transcribe|><|0.00|> Voice generation pipeline, defining and documenting the end-to-end steps to produce synthesized speech from text.<|5.64|>",
+      "start": 171.52,
+      "end": 177.02
+    },
+    {
+      "id": 9,
+      "text": "<|6.12|> Together, these changes make DemoMaker more efficient to deploy, more predictable to operate, and better prepared for the audio pipeline work ahead.<|12.28|>",
+      "start": 177.62,
+      "end": 183.62
+    },
+    {
+      "id": 10,
+      "text": "<|13.04|> Thanks, ciao.<|14.08|>",
+      "start": 184.54,
+      "end": 185.38
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+Hello, my name is Slava.
+Today we will talk about new version of demo maker (0.1.4).
+What's done:
+- we get rid of `split-pdf` CLI command. The main purpose of this command was to split pdf file by
+png pages. It was found that `marp` tool used to generate the PDF also can produce png pages for the
+presentation. As result, we get rid of `poppler-utils` dependency that reduced the final docker image
+- fixed an issue when `build` cli command doesn't copy final merged file to destination folder
+(and kept `_concat_tmp` folder to exist)
+- Added another cli command to normalize reference audio. That makes the audio ideal for TTS by making
+mono audio channel and 24kHz sample rate
+
+As per the workflow we wanted to embedd openai-whisper to the docker image, but it was too heavy.
+Keeping it was not really an option because it depends on ffmpeg and it is not good to have ffmpeg
+both in docker image and on client's host. The `faster-whisper` was found as an alternative. It is
+much lightweight, and doesn't require ffmpeg. But the docker image still around 900Mb that's not
+applicable. So, we will use it as fallback solution. But It be very nice to get whisperkit-cli work
+as it is even more lightweight and can be installed directly by brew without python tricks.
+
+In the future, we plan to finalize whisper tool usage to perform transcribing the audio, along with
+defining steps to generate the voice (text-to-speech)
+
+Thanks.

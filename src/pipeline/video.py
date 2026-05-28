@@ -16,16 +16,12 @@ Letterbox / pillarbox:
 """
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from typing import Optional
 
 from .. import ffmpeg_runner as ff
-from ..ffmpeg_utils import extract_video, convert_image_to_video, trim_video, freeze_last_video_frame, \
-    change_video_speed
+from ..ffmpeg_utils import extract_video, convert_image_to_video
 from ..ffprobe_utils import probe_duration, probe_video_resolution
-
-SPEED_MIN, SPEED_MAX = 0.5, 2.0
 
 def extract_segment(
     src: str | Path,
@@ -66,50 +62,6 @@ def image_to_video(
     w, h = resolution
     vf = _letterbox_filter(resolution, fps)
     convert_image_to_video(duration, fps, h, out, src, vf, w)
-
-
-def normalize(
-    src: Path,
-    target: float,
-    method: str,
-    out: Path,
-    *,
-    fps: int = 25,
-) -> None:
-    """Adjust video clip to exactly target seconds."""
-    ff.ensure_dir(out)
-    actual = probe_duration(src)
-
-    if abs(target - actual) < 0.04:
-        shutil.copy(src, out)
-        return
-
-    if method == "extend_with_last_frame":
-        _freeze(src, actual, target, out, fps)
-    elif method == "change_speed":
-        _speed(src, actual, target, out, fps)
-    else:
-        raise ValueError(f"Unknown video normalization method: {method!r}")
-
-
-def _freeze(src: Path, actual: float, target: float, out: Path, fps: int) -> None:
-    if actual > target:
-        trim_video(out, src, target)
-    else:
-        pad_frames = int((target - actual) * fps) + 1
-        freeze_last_video_frame(actual, out, pad_frames, src, target)
-
-
-def _speed(src: Path, actual: float, target: float, out: Path, fps: int) -> None:
-    real_speed = target / actual   # <1 = slow down, >1 = speed up
-    pts_factor = actual / target   # setpts factor (inverse of speed)
-    if not (SPEED_MIN <= real_speed <= SPEED_MAX):
-        raise ValueError(
-            f"Video speed {real_speed:.3f}× outside [{SPEED_MIN}–{SPEED_MAX}].\n"
-            f"  actual={actual:.3f}s  target={target:.3f}s\n"
-            f"Use extend_with_last_frame or split the topic."
-        )
-    change_video_speed(fps, out, pts_factor, real_speed, src, target)
 
 
 def _letterbox_filter(resolution: tuple[int, int], fps: int) -> str:

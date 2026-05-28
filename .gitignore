@@ -206,3 +206,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+/workflow/models/
+/workflow/sample/slides/
+*.wav
+*.mp4
+*.mov
+*-origin.json
