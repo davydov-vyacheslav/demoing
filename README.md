@@ -18,7 +18,7 @@ docker build -t davs87/demo-builder .
 Or with plain `docker run`:
  
 ```bash
-docker run --rm -v "$(pwd)":/work davs87/demo-builder build config.yaml -o final.mp4
+docker run --rm -v "$(pwd)":/work davs87/demo-builder build config.yaml -o final.mov
 docker run --rm -v "$(pwd)":/work davs87/demo-builder ref-audio-normalize my_reference.m4a
 docker run --rm -v "$(pwd)":/work davs87/demo-builder presentation presentation.typ --styles styles
 ```

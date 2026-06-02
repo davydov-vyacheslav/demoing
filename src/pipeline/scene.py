@@ -81,7 +81,7 @@ def _build_scene(
     video_src = config.video_file(topic)
     scene_dir = work_dir / f"{idx:03d}_{topic.name}"
     scene_dir.mkdir(exist_ok=True)
-    final = scene_dir / "scene.mp4"
+    final = scene_dir / "scene.mov"
 
     # ── Cache check ────────────────────────────────────────────────────────
     cache_key = _make_cache_key(topic, config, audio_src, video_src, resolution, fps)
@@ -99,12 +99,12 @@ def _build_scene(
         )
 
     # ── Step 1: extract audio ──────────────────────────────────────────────
-    raw_audio = scene_dir / "raw_audio.aac"
+    raw_audio = scene_dir / "raw_audio.m4a"
     timing = topic.audio.timing
     a_dur = a_pipe.extract_segment(audio_src, timing[0], timing[1], raw_audio)
 
     # ── Step 2: get raw video clip (fromVideo only) ────────────────────────
-    raw_video = scene_dir / "raw_video.mp4"
+    raw_video = scene_dir / "raw_video.mov"
     v_dur: Optional[float] = None
 
     if topic.video.typeOf == "video":
@@ -139,10 +139,8 @@ def _build_scene(
     a_pipe.normalize(raw_audio, target, norm.audio, norm_audio)
 
     # ── Step 4c: normalize video ───────────────────────────────────────────
-    norm_video = scene_dir / "norm_video.mp4"
-    if topic.video.typeOf == "video":
-        v_pipe.normalize(raw_video, target, norm.video, norm_video, fps=fps)
-    else:
+    norm_video = scene_dir / "norm_video.mov"
+    if topic.video.typeOf != "video":
         shutil.copy(raw_video, norm_video)
 
     # ── Step 5: mux audio + video ──────────────────────────────────────────

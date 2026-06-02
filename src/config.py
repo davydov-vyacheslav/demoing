@@ -32,8 +32,7 @@ from .utils import parse_timecode
 
 # ── Norm method aliases ────────────────────────────────────────────────────
 
-AudioNormMethod = Literal["extend_with_silence", "change_speed"]
-VideoNormMethod = Literal["extend_with_last_frame", "change_speed"]
+AudioNormMethod = Literal["extend_with_silence"]
 ImageNormMethod = Literal["to_video_same_frame"]
 
 
@@ -41,7 +40,6 @@ ImageNormMethod = Literal["to_video_same_frame"]
 
 class DefaultNorm(BaseModel):
     audio: AudioNormMethod = "extend_with_silence"
-    video: VideoNormMethod = "extend_with_last_frame"
     image: ImageNormMethod = "to_video_same_frame"
 
 
@@ -136,7 +134,6 @@ class TopicNorm(BaseModel):
     by: Literal["audio", "video", "fixed"] = "audio"
     length: Optional[float] = None      # target duration; required when by=fixed
     audio: Optional[AudioNormMethod] = None
-    video: Optional[VideoNormMethod] = None
     image: Optional[ImageNormMethod] = None
 
     @field_validator("length", mode="before")
@@ -213,7 +210,6 @@ class DemoConfig(BaseModel):
         d = self.default_normalization
         return tn.model_copy(update={
             "audio": tn.audio or d.audio,
-            "video": tn.video or d.video,
             "image": tn.image or d.image,
         })
 

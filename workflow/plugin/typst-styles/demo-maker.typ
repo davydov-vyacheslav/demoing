@@ -79,8 +79,8 @@
       place(
         left + top,
         dx: 2pt,
-        dy: 16pt,
-        image(logo, width: 96pt, fit: "contain"),
+        dy: 8pt,
+        image(logo, width: 64pt, fit: "contain"),
       )
     },
 

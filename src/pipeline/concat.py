@@ -24,7 +24,7 @@ def concatenate(
         "\n".join(f"file '{p.resolve()}'" for p in paths)
     )
 
-    merged = tmp_dir / "merged.mp4"
+    merged = tmp_dir / "merged.mov"
     concat_items_from_file(list_file, merged)
     shutil.move(str(merged), str(output))
     shutil.rmtree(tmp_dir, ignore_errors=True)

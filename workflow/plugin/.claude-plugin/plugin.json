@@ -1,0 +1,11 @@
+{
+  "name": "demo-flow",
+  "displayName": "Demo Flow",
+  "version": "0.1.0",
+  "description": "Turn a rough draft into a narrated demo video: polish the speech, generate a Typst deck, synthesize voice with a cloned reference, and assemble the final cut — with human review checkpoints between every step.",
+  "author": {
+    "name": "Viacheslav Davydov",
+    "email": "davs@javanix.com"
+  },
+  "keywords": ["demo", "presentation", "typst", "tts", "whisper", "video"]
+}

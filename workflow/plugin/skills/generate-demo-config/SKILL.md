@@ -1,0 +1,84 @@
+---
+name: generate-demo-config
+description: Generate a demo-builder config.yaml from a presentation PDF and a Whisper word-level transcript JSON. Use when the user needs to assemble timing/topics (sample/5.demo.yaml) that map spoken cues to slides for the final video build.
+---
+
+# Generate Demo-Maker Configuration
+
+You are generating a demo-builder `config.yaml` that must validate against the JSON Schema at
+https://github.com/davydov-vyacheslav/demoing/blob/master/config.schema.json
+
+## Inputs / outputs
+
+- **Input 1**: presentation PDF. Default `sample/2.presentation.pdf`.
+- **Input 2**: Whisper word-level transcript JSON (produced with `--word-timestamps`). Default `sample/4.presentation.json`.
+- **Output**: `sample/5.demo.yaml`.
+
+After writing, ask the user to double-check: the `audio_file` name may contain stray
+underscores, and `default_configuration.resolution` should match the screencast video's
+resolution if one is used.
+
+## Schema summary
+
+Root object requires:
+- `default_configuration` (object, required)
+  - `audio_file`: string — main audio file all topics reference by default
+  - `video_file`: string — optional main screen recording
+  - `resolution`: `[width, height]` — required when all topics use images
+- `topics`: array of Topic (at least 1 item)
+
+Optional root key:
+- `default_normalization` (object)
+  - `audio`: `"extend_with_silence"`
+  - `image`: `"to_video_same_frame"`
+
+Each Topic requires:
+- `name`: string — unique scene name, used in logs and chapter metadata; will be used as a
+  folder name, so only lowercase letters, digits, and underscores are allowed (no spaces or
+  special chars).
+- `audio` (AudioSource, required)
+  - `file`: string — optional per-topic override of default `audio_file`
+  - `timing`: `[start, end]` — `MM:SS.mmm` or `HH:MM:SS.mmm` timecodes
+- `video` (VideoSource, required)
+  - `typeOf`: `"video" | "image"`
+  - `file`: string — PNG path when `typeOf=image` (required); video override when `typeOf=video` (optional)
+  - `timing`: `[start, end]` — required when `typeOf=video`, ignored for image
+- `length_normalization` (TopicNorm, optional)
+  - `by`: `"audio" | "video" | "fixed"`
+  - `length`: `MM:SS.mmm` — required when `by=fixed`
+  - `audio`: `"extend_with_silence"` — per-topic override
+  - `image`: `"to_video_same_frame"`
+
+All timecodes must use the format `MM:SS.mmm` (e.g. `"01:14.440"`).
+
+## Steps
+
+1. Derive `default_configuration.audio_file` by taking the JSON filename and replacing its
+   extension with `.wav` (e.g. `4_presentation.json` → `4_presentation.wav`).
+
+2. Parse the Whisper JSON segments and words to find exact spoken cues that signal slide
+   transitions (e.g. "Let's start with authentication", "Next, logging", "The third area is…",
+   "Let's have a demo", "Here is what we are working on next", "That covers everything").
+
+3. Match each cue to the corresponding slide in the PDF sequence.
+
+4. For `audio.timing`, set `start` from the Whisper word-level timestamp of the first word of
+   each slide's cue (`MM:SS.mmm`, millisecond precision). Set `end` using the NO-GAP rule below.
+
+   **NO-GAP RULE** — within a single audio file there must be no silence gaps between
+   consecutive topics. Therefore:
+   - end of topic N = start of topic N+1 (exactly the same value)
+   - end of the last topic = timestamp of the very last word's end
+
+   This ensures the audio track plays continuously without jumps or pauses between segments.
+
+5. Set `video.typeOf = image`, `video.file` = path to the matching slide (assume its name is in
+   the format `slides/2.presentation-??.png` starting from `01`).
+
+6. Add 3 seconds of silence after each topic's speech so attendees have time to absorb the slide:
+   - `length_normalization.by = fixed`
+   - `length = (audio.end − audio.start) + 00:03.000`
+   - `audio = extend_with_silence`
+
+7. Set `default_normalization.image = to_video_same_frame` so every static PNG is held for the
+   full topic duration.

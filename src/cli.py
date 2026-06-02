@@ -34,7 +34,7 @@ def cli():
 
 @cli.command()
 @click.argument("config_file", type=click.Path(exists=True, dir_okay=False))
-@click.option("-o", "--output",      default="final.mp4",   show_default=True)
+@click.option("-o", "--output",      default="final.mov",   show_default=True)
 @click.option("--work-dir",          default=".demo_build", show_default=True)
 @click.option("--verbose",           is_flag=True,  help="Show ffmpeg output")
 @click.option("--log",               default=None,  help="Write ffmpeg log to file")
@@ -99,7 +99,9 @@ def ref_audio_normalize(input_file):
 @click.argument("input_file", metavar="FILE", type=click.Path(exists=True, dir_okay=False))
 @click.option("--styles", metavar="DIR", type=click.Path(file_okay=False),
               help="Folder with theme files (demo-maker.typ, logo.svg, …).")
-def presentation(input_file: str, styles: str | None) -> None:
+@click.option("--assets", metavar="DIR", type=click.Path(file_okay=False),
+              help="Folder with assets (e.g., presentation images).")
+def presentation(input_file: str, styles: str | None, assets: str | None) -> None:
     """Compile FILE to a PDF and a folder of per-slide PNG images.
 
     \b
@@ -117,6 +119,9 @@ def presentation(input_file: str, styles: str | None) -> None:
 
         if styles:
             for item in Path(styles).resolve().iterdir():
+                (shutil.copy2 if item.is_file() else shutil.copytree)(item, tmp_dir / item.name)
+        if assets:
+            for item in Path(assets).resolve().iterdir():
                 (shutil.copy2 if item.is_file() else shutil.copytree)(item, tmp_dir / item.name)
 
         tmp_src = tmp_dir / src.name
@@ -161,21 +166,8 @@ def _print_validation(config) -> None:
         by_str = "fixed" if n.fixed_duration else n.by
         vmeth = n.video if t.video.typeOf == "video" else n.image
 
-        w: list[str] = []
-        if n.audio == "change_speed" and a > 0 and tgt > 0:
-            f_ = a / tgt
-            if not (0.75 <= f_ <= 1.25):
-                w.append(f"audio speed {f_:.2f}× outside [0.75–1.25]")
-        if v and n.video == "change_speed" and tgt > 0:
-            spd = tgt / v
-            if not (0.5 <= spd <= 2.0):
-                w.append(f"video speed {spd:.2f}× outside [0.5–2.0]")
-
-        flag = f" {Y}⚠{R}" if w else ""
         print(f"  {C}{i+1:<4}{R}{t.name:<22}{format_timecode(a):>8}"
-              f"{v_str:>9}{format_timecode(tgt):>9}  {by_str:<7} A:{n.audio} / V:{vmeth}{flag}")
-        for msg in w:
-            warnings.append(f"  {Y}⚠  {t.name!r}: {msg}{R}")
+              f"{v_str:>9}{format_timecode(tgt):>9}  {by_str:<7} A:{n.audio} / V:{vmeth}")
 
     print("  " + "─" * 72)
     print(f"  {B}{'':4}{'TOTAL':<22}{'':>8}{'':>9}{format_timecode(total):>9}{R}\n")

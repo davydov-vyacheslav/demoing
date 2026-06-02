@@ -59,15 +59,9 @@
       "properties": {
         "audio": {
           "title": "Audio",
-          "description": "extend_with_silence | change_speed (0.75×–1.25× limit)",
+          "description": "extend_with_silence",
           "type": "string",
-          "enum": ["extend_with_silence", "change_speed"]
-        },
-        "video": {
-          "title": "Video",
-          "description": "extend_with_last_frame | change_speed (0.5×–2.0× limit)",
-          "type": "string",
-          "enum": ["extend_with_last_frame", "change_speed"]
+          "enum": ["extend_with_silence"]
         },
         "image": {
           "title": "Image",
@@ -177,13 +171,7 @@
           "title": "Audio",
           "description": "Override audio normalization method for this topic.",
           "type": "string",
-          "enum": ["extend_with_silence", "change_speed"]
-        },
-        "video": {
-          "title": "Video",
-          "description": "Override video normalization method for this topic.",
-          "type": "string",
-          "enum": ["extend_with_last_frame", "change_speed"]
+          "enum": ["extend_with_silence"]
         },
         "image": {
           "title": "Image",
