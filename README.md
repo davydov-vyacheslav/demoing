@@ -23,6 +23,6 @@ docker run --rm -v "$(pwd)":/work davs87/demo-builder ref-audio-normalize my_ref
 docker run --rm -v "$(pwd)":/work davs87/demo-builder presentation presentation.typ --styles styles
 ```
 
-You may check commands samples in workflow sample [readme file](./workflow/readme.md)
+You may check commands samples in workflow sample [readme file](./workflow/README.md)
 
 Docker Hub PAT token url: https://app.docker.com/accounts/davs87/settings/personal-access-tokens/

@@ -1,5 +1,6 @@
 # Various
 .DS_Store
+impl-*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

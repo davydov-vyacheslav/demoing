@@ -95,6 +95,6 @@ step):
 ```sh
 docker run --rm -v "$(pwd)":/work \
   -v "${CLAUDE_PLUGIN_ROOT}/typst-styles":/work/typst-styles \
-  davs87/demo-builder:$DEMO_BUILDER_VERSION \
+  davs87/demo-builder:"$(cat "${CLAUDE_PLUGIN_ROOT}/builder-version")" \
   presentation ./sample/2.presentation.typ --styles ./typst-styles
 ```

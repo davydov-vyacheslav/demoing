@@ -3,15 +3,19 @@
 #
 # Usage:
 #   preflight.sh <workdir> [models_dir] [venv_dir] [builder_version]
-# Defaults: models_dir=./models  venv_dir=./.venv  builder_version=latest
+# Defaults: models_dir=./models  venv_dir=./.venv
+#           builder_version = contents of ../builder-version (the single source of truth)
 #
 # Run scripts/setup.sh first to auto-provision the venv + models; this script only checks.
 # Prints [ OK ] / [WARN] / [FAIL]. Exits non-zero if any hard requirement fails.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_VER="$(cat "$SCRIPT_DIR/../builder-version" 2>/dev/null || echo latest)"
+
 WORKDIR="${1:?Usage: preflight.sh <workdir> [models_dir] [venv_dir] [builder_version]}"
 MODELS_DIR="${2:-./models}"
 VENV="${3:-./.venv}"
-BUILDER_VER="${4:-latest}"
+BUILDER_VER="${4:-$DEFAULT_VER}"
 IMAGE="davs87/demo-builder:${BUILDER_VER}"
 PY="$VENV/bin/python"
 
@@ -69,8 +73,8 @@ echo
 echo "Working-dir inputs ($WORKDIR)"
 [ -d "$WORKDIR" ] || bad "working directory does not exist: $WORKDIR"
 [ -f "$WORKDIR/0.draft.txt" ]        && ok "0.draft.txt present"        || bad "missing 0.draft.txt (your speech draft)"
-[ -f "$WORKDIR/0.my_reference.wav" ] && ok "0.my_reference.wav present" || warn "missing 0.my_reference.wav (needed from step 4 — generate via ref-audio-normalize)"
-[ -f "$WORKDIR/0.my_reference.txt" ] && ok "0.my_reference.txt present" || warn "missing 0.my_reference.txt (needed from step 4)"
+[ -f "$WORKDIR/0.my_reference.wav" ] && ok "0.my_reference.wav present" || bad "missing 0.my_reference.wav (reference voice — generate via ref-audio-normalize)"
+[ -f "$WORKDIR/0.my_reference.txt" ] && ok "0.my_reference.txt present" || bad "missing 0.my_reference.txt (reference voice text)"
 
 echo
 if [ "$fail" -eq 0 ]; then

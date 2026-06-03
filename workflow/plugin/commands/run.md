@@ -1,10 +1,10 @@
 ---
 description: Drive the end-to-end demo-video pipeline (speech → deck → voice → assembled video) inside a working folder, refining each step interactively with the user.
-argument-hint: "[working-dir] [builder-version] e.g. /demo-flow @my-demo/ 0.1.5"
+argument-hint: "[working-dir] [builder-version-override] e.g. /demo-flow:run @my-demo/ 0.2.0"
 disable-model-invocation: true
 ---
 
-# /demo-flow
+# /demo-flow:run
 
 Orchestrate the demo-video production pipeline. Walk the steps **in order**; after each step
 **stop and collaborate with the user** until they approve, then move on. Never auto-advance.
@@ -14,7 +14,7 @@ Orchestrate the demo-video production pipeline. Walk the steps **in order**; aft
 The pipeline reads inputs from and writes ALL outputs (including the final video) into a single
 **working directory**, `WORKDIR`.
 
-- `WORKDIR` = the folder in `$ARGUMENTS` (e.g. `/demo-flow @my-demo/`). Resolve it to an
+- `WORKDIR` = the folder in `$ARGUMENTS` (e.g. `/demo-flow:run @my-demo/`). Resolve it to an
   absolute path.
 - If `$ARGUMENTS` is empty, **ask the user** which folder to use, or default to the current
   directory. Confirm the resolved path back to the user before running anything.
@@ -32,24 +32,44 @@ any `sample/` subfolder.
 The plugin manages its own environment — no env vars, and **never** rely on a pre-activated
 venv. Resolve these once and reuse:
 
-- **`BUILDER_VER`** = the `davs87/demo-builder` image tag: a version token in `$ARGUMENTS`
-  (e.g. `/demo-flow @my-demo/ 0.1.5`), else `latest`. Report the resolved tag before any docker
-  step and use `davs87/demo-builder:$BUILDER_VER` everywhere below.
+- **`BUILDER_VER`** = the `davs87/demo-builder` image tag. Resolve it as: a version token in
+  `$ARGUMENTS` (e.g. `/demo-flow:run @my-demo/ 0.2.0`), else the pinned default in
+  `${CLAUDE_PLUGIN_ROOT}/builder-version` (the single source of truth — bump it there, one place):
+  ```sh
+  BUILDER_VER="${arg_version:-$(cat "${CLAUDE_PLUGIN_ROOT}/builder-version")}"
+  ```
+  Report the resolved tag before any docker step and use `davs87/demo-builder:$BUILDER_VER` below.
 - **`VENV`** = `./.venv`, **`MODELS_DIR`** = `./models` (both relative to where Claude was
   launched). `setup.sh` creates them if absent. Call python as **`"$VENV/bin/python"`** directly
   — do not `source activate`. Models are shared here, **not** copied into `WORKDIR`.
 - Bundled plugin assets live under `${CLAUDE_PLUGIN_ROOT}` (`typst-styles/`, `scripts/`).
 
-## Step 0 — Provision, then preflight (always run first)
+## Step 0 — Inputs, then provision, then preflight (always run first)
 
-First **provision** the venv, python deps, and models (idempotent — auto-downloads anything
+**0a. Fail fast on missing inputs** — check this *before* provisioning anything, so we never
+kick off a multi-GB model download for a folder that isn't ready:
+
+```sh
+missing=()
+for f in 0.draft.txt 0.my_reference.wav 0.my_reference.txt; do
+  [ -f "$WORKDIR/$f" ] || missing+=("$f")
+done
+[ ${#missing[@]} -eq 0 ] || { printf 'Missing required input(s) in %s:\n' "$WORKDIR"; printf '  - %s\n' "${missing[@]}"; exit 1; }
+```
+
+If this exits non-zero, **stop immediately** — do not provision, do not run preflight. Tell the
+user exactly which files to add: `0.draft.txt` (the speech draft), and the reference voice
+`0.my_reference.wav` + `0.my_reference.txt` (record ~12s and run `ref-audio-normalize` on the
+`.m4a` per the README to produce the `.wav`).
+
+**0b. Provision** the venv, python deps, and models (idempotent — auto-downloads anything
 missing, including the multi-GB models):
 
 ```sh
 "${CLAUDE_PLUGIN_ROOT}/scripts/setup.sh" "$MODELS_DIR" "$VENV"
 ```
 
-Then **verify** the rest (docker, whisperkit-cli, jq, image, inputs):
+**0c. Preflight** — verify the rest (docker, whisperkit-cli, jq, image, models, inputs):
 
 ```sh
 "${CLAUDE_PLUGIN_ROOT}/scripts/preflight.sh" "$WORKDIR" "$MODELS_DIR" "$VENV" "$BUILDER_VER"
@@ -57,7 +77,7 @@ Then **verify** the rest (docker, whisperkit-cli, jq, image, inputs):
 
 Show both reports. If preflight exits non-zero (`[FAIL]`), **stop** and help the user resolve
 the remaining host-tool items (docker / whisperkit-cli / jq can't be auto-installed). `[WARN]`
-items are fine to continue past (image pulled on first use; reference voice only needed at step 4).
+items are fine to continue past (e.g. the image is pulled on first use).
 
 ## Resume
 

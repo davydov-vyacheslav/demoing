@@ -21,7 +21,7 @@ workflow/
 ├── plugin/                 ← the demo-flow Claude Code plugin (self-contained)
 │   ├── .claude-plugin/plugin.json
 │   ├── skills/             ← the three AI steps
-│   ├── commands/           ← /demo-flow orchestrator
+│   ├── commands/           ← /demo-flow:run orchestrator
 │   ├── scripts/            ← clean-transribe-json.sh, tts.sh
 │   └── typst-styles/       ← demo-maker.typ theme, logo, diagram SVGs
 ├── sample/                 ← draft, speech, slides, audio, final.mov (experiments)
@@ -48,8 +48,8 @@ Point Claude Code at the `plugin/` subdirectory (not the workspace root):
 ```sh
 claude --plugin-dir /path/to/workflow/plugin
 # then, inside Claude Code:
-/demo-flow            # run the full pipeline from the start
-/demo-flow voice      # or resume from a specific step
+/demo-flow:run @my-demo/   # run the full pipeline against a working folder
+/demo-flow:run             # asks which folder to use (resume is automatic)
 ```
 
 Run the pipeline commands themselves from the **workspace root** (`workflow/`), where `sample/`
@@ -63,59 +63,6 @@ draft for TTS"). `/reload-plugins` picks up edits without restarting.
 > For now they run as plain commands via the orchestration above. See `plugin/.claude-plugin/plugin.json`
 > `mcpServers` for where that wiring would live.
 
-### Using this in Claude Desktop
-
-A Claude Code **plugin cannot be installed into Claude Desktop as a bundle** — plugins
-(and slash commands like `/demo-flow`) are Claude Code–only. But the pieces cross over
-individually:
-
-| Part | Works in Desktop? | How |
-|---|---|---|
-| `generate-speech`, `generate-presentation`, `generate-demo-config` skills | ✅ Yes | Upload each as a Custom Skill (see below) |
-| `/demo-flow` slash command | ❌ No | Claude Code–only; stays in the terminal |
-| Local tooling (docker `demo-builder`, `mlx_audio`, `whisperkit-cli`) | ⚠️ Not via skills | Desktop skills run in a sandbox that can't reach your local docker/models. Use an MCP server instead (below). |
-
-**1. Add the generation skills as Custom Skills (claude.ai / Desktop)**
-
-These three are pure text-generation steps, so they run fine in Desktop. Requires a
-**Pro, Max, or Team plan** with **code execution / file creation** enabled.
-
-```sh
-# zip each skill folder so SKILL.md sits at the archive root
-cd plugin/skills && zip -r generate-speech.zip generate-speech
-```
-
-Then upload the `.zip` at **Settings → Capabilities → Skills** (Custom Skills). Each skill's
-`SKILL.md` carries a `name:` + `description:` header, which is exactly what the uploader
-expects. Note: Custom Skills are per-user — each teammate uploads their own.
-
-**2. Bring the *tooling* steps in via a local MCP server (recommended next step)**
-
-Because Desktop skills are sandboxed, the way to drive your local docker image and ML models
-from Desktop is a **local MCP server** (which runs on your machine with full access). Once the
-server described in `plugin/.claude-plugin/plugin.json` exists, connect it one of two ways:
-
-- **Config file** — edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
-  ```json
-  {
-    "mcpServers": {
-      "demo-builder": {
-        "command": "/absolute/path/to/demo-builder-mcp",
-        "args": [],
-        "env": { "DEMO_BUILDER_VERSION": "0.1.5" }
-      }
-    }
-  }
-  ```
-  Restart Claude Desktop afterward.
-- **Desktop Extension (`.mcpb`)** — package the server for one-click install via
-  **Settings → Extensions** (the current replacement for `.dxt`). See
-  https://github.com/modelcontextprotocol/mcpb.
-
-So the practical split: **prompts → Custom Skills** in Desktop, **local pipeline → a local
-MCP server** in Desktop, and the full one-command `/demo-flow` orchestration stays in
-Claude Code.
-
 ---
 
 ## Before you start
@@ -125,7 +72,7 @@ Claude Code.
 1. `claude` (tested with Claude + Sonnet 4.6 Adaptive) or `gh copilot`
 2. python (3.14)
 3. docker
-4. `export DEMO_BUILDER_VERSION=0.1.5`
+4. `export DEMO_BUILDER_VERSION=$(cat plugin/builder-version)` — the pinned demo-builder tag (single source of truth)
 5. `brew install whisperkit-cli` (TTS voice clone support planned: https://github.com/argmaxinc/argmax-oss-swift)
 6. `brew install jq`
 
@@ -178,14 +125,14 @@ See:
 
 ## Pipeline
 
-Run end-to-end with `/demo-flow`, or step through manually as below. Each step has a
+Run end-to-end with `/demo-flow:run`, or step through manually as below. Each step has a
 **post action** — review the output before continuing.
 
 ### 1. Prepare the speech
 
 Prettify the draft into a TTS-ready script.
 
-- Skill:  **`generate-speech`** (auto-invoked, or call via `/demo-flow speech`)
+- Skill:  **`generate-speech`** (auto-invoked, part of `/demo-flow:run`, or `/demo-flow:generate-speech`)
 - Input:  [sample draft speech](./sample/0.draft.txt)
 - Output: [prettified speech](./sample/1.speech.txt)
 
@@ -202,7 +149,7 @@ styles; predefined styles live in [`./plugin/typst-styles`](./plugin/typst-style
 
 **Generate the Typst-compatible `.typ` file:**
 
-- Skill:  **`generate-presentation`** (auto-invoked, or `/demo-flow presentation`)
+- Skill:  **`generate-presentation`** (auto-invoked, part of `/demo-flow:run`, or `/demo-flow:generate-presentation`)
 - Input:  [user speech](./sample/1.speech.txt)
 - Output: [raw presentation](./sample/2.presentation.typ)
 
@@ -225,12 +172,14 @@ docker run --rm -v "$(pwd)":/work davs87/demo-builder:$DEMO_BUILDER_VERSION pres
 
 This step is needed when you want to move your screencast speech to AI-based narration.
 
-`FIXME: UNDER CONSTRUCTION`
+> FIXME: UNDER CONSTRUCTION
 
 #### Cleanup screencast voice
 
-`FIXME: UNDER CONSTRUCTION`
+> FIXME: UNDER CONSTRUCTION
 >> FIXME: Screencast — how to clean up the JSON file finely?
+> `plugin/scripts/tts.sh` can synthesize per-segment audio from a transcript JSON (resumable) if you
+> prefer chunked generation over a single pass.
 
 - [ ] extract audio from video
   - `ffmpeg -i video.mp4 -vn -ac 1 -ar 16000 output.wav`
@@ -280,9 +229,6 @@ mv ./sample/output/audio.wav ./sample/4.presentation.wav \
 - Input:  [the speech](./sample/1.speech.txt) — see `Prepare the speech`
 - Output: [presentation speech](./sample/4.presentation.wav)
 
-> `plugin/scripts/tts.sh` can synthesize per-segment audio from a transcript JSON (resumable) if you
-> prefer chunked generation over a single pass.
-
 ### Generate the speech word-based transcript
 
 We transcribe the audio back from text because we need word-level timestamps.
@@ -314,7 +260,7 @@ Compact the JSON for downstream AI processing:
 >> 
 >> Not sure whether we need to process screeencast part manually
 
-- Skill:  **`generate-demo-config`** (auto-invoked, or `/demo-flow config`)
+- Skill:  **`generate-demo-config`** (auto-invoked, part of `/demo-flow:run`, or `/demo-flow:generate-demo-config`)
 - Input:  [presentation](./sample/2.presentation.pdf)
 - Input:  [user speech timestamps](./sample/4.presentation.json)
 - Output: [configuration](./sample/5.demo.yaml)

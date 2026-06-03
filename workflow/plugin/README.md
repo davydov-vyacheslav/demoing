@@ -12,8 +12,9 @@ assembled video — driven from Claude Code, with an interactive review at every
 | Component | Path | Role |
 |---|---|---|
 | Manifest | `.claude-plugin/plugin.json` | Plugin metadata (`name: demo-flow`) |
+| Version pin | `builder-version` | The single source of truth for the `davs87/demo-builder` image tag |
 | Skills | `skills/*/SKILL.md` | The AI steps (auto-invoked by description) |
-| Command | `commands/demo-flow.md` | `/demo-flow` — orchestrates the whole pipeline |
+| Command | `commands/run.md` | `/demo-flow:run` — orchestrates the whole pipeline |
 | Theme | `typst-styles/` | `demo-maker.typ` theme, logo, diagram SVGs |
 | Scripts | `scripts/` | `setup.sh` (provision venv+models), `preflight.sh` (verify), `clean-transribe-json.sh`, `tts.sh` |
 
@@ -41,7 +42,7 @@ claude --plugin-dir /path/to/workflow/plugin
 - `python3` (3.14)
 - `brew install whisperkit-cli jq`
 
-**Everything else is auto-provisioned** by `scripts/setup.sh`, which `/demo-flow` runs in Step 0:
+**Everything else is auto-provisioned** by `scripts/setup.sh`, which `/demo-flow:run` runs in Step 0:
 the python `.venv`, the `mlx-audio` / `huggingface_hub` deps, and the multi-GB models (Qwen3-TTS
 + Whisper large-v3) are created/downloaded on first run if missing. No env vars, and no manual
 `source .venv/bin/activate` — the pipeline calls the venv's interpreter directly. You can also
@@ -51,30 +52,44 @@ provision ahead of time (args: `models_dir`, `venv_dir`):
 scripts/setup.sh ./models ./.venv
 ```
 
-## Usage: `/demo-flow`
+## Usage: `/demo-flow:run`
 
-`/demo-flow` runs the full pipeline against a **working directory** you choose. All inputs and
+> Plugin commands are namespaced `plugin:command`, so the invocation is `/demo-flow:run`
+> (plugin `demo-flow`, command `run`) — there is no bare short form.
+
+`/demo-flow:run` runs the full pipeline against a **working directory** you choose. All inputs and
 **all generated files — including `final.mov` — live in that one folder.**
 
 ```
-/demo-flow @my-demo/        # use ./my-demo as the working dir
-/demo-flow @my-demo/ 0.1.5  # also pin the demo-builder docker image tag
-/demo-flow                  # asks which folder to use (or current dir)
+/demo-flow:run @my-demo/         # use ./my-demo as the working dir
+/demo-flow:run @my-demo/ 0.2.0   # override the demo-builder image tag for this run
+/demo-flow:run                   # asks which folder to use (or current dir)
 ```
 
-**Docker image version:** the optional second argument pins the `davs87/demo-builder` tag. If
-omitted it defaults to `latest`. The resolved tag is reported back before any docker step runs.
+**Docker image version — one source of truth:** the pinned tag lives in a single file,
+[`builder-version`](builder-version). Every docker step (in the command, the skills, and the
+preflight check) reads it, so **to bump the version you edit that one file.** The optional second
+argument to `/demo-flow:run` overrides it for a single run. The resolved tag is reported before
+any docker step.
 
-**Step 0 — provision + preflight:** before doing anything, `/demo-flow` runs
-[`scripts/setup.sh`](scripts/setup.sh) (creates the venv, installs deps, downloads missing
-models) and then [`scripts/preflight.sh`](scripts/preflight.sh) (verifies docker + daemon,
-`whisperkit-cli`, `jq`, the venv interpreter, the chosen image, the models, and the working-dir
-inputs). Preflight prints an `[ OK ] / [WARN] / [FAIL]` report and stops on any hard failure so
-you fix the environment before the pipeline burns time. Run it standalone with
-(args: `workdir`, `models_dir`, `venv_dir`, `builder_version`):
+**Step 0 — fail-fast, provision, preflight:** before doing anything, `/demo-flow:run`:
+
+1. **Fail-fast input check** — verifies `0.draft.txt`, `0.my_reference.wav`, and
+   `0.my_reference.txt` exist in the working dir. If any are missing it **stops immediately**,
+   *before* provisioning, so an unready folder never triggers a multi-GB model download.
+2. Runs [`scripts/setup.sh`](scripts/setup.sh) — creates the venv, installs deps, downloads
+   missing models.
+3. Runs [`scripts/preflight.sh`](scripts/preflight.sh) — verifies docker + daemon,
+   `whisperkit-cli`, `jq`, the venv interpreter, the chosen image, the models, and the inputs.
+
+Preflight prints an `[ OK ] / [WARN] / [FAIL]` report and stops on any hard failure so you fix
+the environment before the pipeline burns time. Run it standalone with
+(args: `workdir`, `models_dir`, `venv_dir`, `builder_version`; the version defaults to
+`builder-version` if omitted):
 
 ```sh
-scripts/preflight.sh ./my-demo ./models ./.venv 0.1.5
+scripts/preflight.sh ./my-demo            # uses pinned builder-version
+scripts/preflight.sh ./my-demo ./models ./.venv 0.2.0   # override for this check
 ```
 
 **Put these in the working folder before you start:**
@@ -87,7 +102,7 @@ scripts/preflight.sh ./my-demo ./models ./.venv 0.1.5
 
 ### How the steps go
 
-`/demo-flow` walks 7 steps and **stops after each one as a refine loop**: it shows you the
+`/demo-flow:run` walks 7 steps and **stops after each one as a refine loop**: it shows you the
 result and asks "approve, or what should I change?". You can simply **ask for corrections in
 chat** — reword a slide, shorten the intro, fix a timing — and Claude applies them and
 re-presents, looping until you approve. It never auto-advances, and you never have to hand-edit
@@ -103,21 +118,8 @@ files yourself unless you want to.
 | 6 | Config | `generate-demo-config` skill | `5.demo.yaml` |
 | 7 | Build | docker `demo-builder` | **`final.mov`** |
 
-Resume is automatic: if a step's output already exists in the folder, `/demo-flow` offers to
+Resume is automatic: if a step's output already exists in the folder, `/demo-flow:run` offers to
 reuse or regenerate it.
 
 > **Status:** the image-slides + narration path works end to end. Mixing in a screen recording
 > (screencast) is still under construction — see the FIXMEs in [`../README.md`](../README.md).
-
-## Using the skills in Claude Desktop
-
-Plugins (and the `/demo-flow` command) are Claude Code–only. The three **skills**, however, can
-be uploaded to Claude Desktop / claude.ai as Custom Skills (they're pure text generation):
-
-```sh
-cd skills && zip -r generate-speech.zip generate-speech
-```
-
-Upload at **Settings → Capabilities → Skills** (requires Pro/Max/Team + code execution). The
-local tooling (docker, TTS, transcribe) can't run in Desktop's sandbox — bring it in via a local
-MCP server instead. See [`../README.md`](../README.md) for details.
